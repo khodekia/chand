@@ -23,10 +23,10 @@ export default class ChandExtension extends Extension {
         Main.panel.addToStatusArea(this.uuid, this._indicator);
 
         // Wire indicator signals
-        this._indicator.connect('refresh-requested', () => {
+        this._refreshSignalId = this._indicator.connect('refresh-requested', () => {
             this._fetchPrices();
         });
-        this._indicator.connect('preferences-requested', () => {
+        this._prefsSignalId = this._indicator.connect('preferences-requested', () => {
             this.openPreferences();
         });
 
@@ -65,6 +65,15 @@ export default class ChandExtension extends Extension {
 
         // Tear down indicator
         if (this._indicator) {
+            if (this._refreshSignalId) {
+                this._indicator.disconnect(this._refreshSignalId);
+                this._refreshSignalId = null;
+            }
+            if (this._prefsSignalId) {
+                this._indicator.disconnect(this._prefsSignalId);
+                this._prefsSignalId = null;
+            }
+            
             this._indicator.destroy();
             this._indicator = null;
         }
