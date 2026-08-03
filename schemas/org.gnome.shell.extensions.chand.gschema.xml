@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.chand"
+          path="/org/gnome/shell/extensions/chand/">
+
+    <key name="update-interval" type="i">
+      <default>300</default>
+      <summary>Update interval in seconds</summary>
+      <description>How often to fetch new prices (in seconds). Default is 300 (5 minutes).</description>
+    </key>
+
+    <key name="language" type="s">
+      <default>'fa'</default>
+      <summary>Display language</summary>
+      <description>UI language: 'fa' for Persian, 'en' for English.</description>
+    </key>
+
+    <key name="display-unit" type="s">
+      <default>'toman'</default>
+      <summary>Display unit</summary>
+      <description>Price display unit: 'toman' or 'rial'.</description>
+    </key>
+
+    <key name="panel-ticker" type="s">
+      <default>'usdt'</default>
+      <summary>Panel ticker asset</summary>
+      <description>Which asset price to display in the top panel indicator.</description>
+    </key>
+
+    <key name="visible-assets" type="as">
+      <default>['usd', 'eur', 'gbp', 'aed', 'try', 'btc', 'eth', 'usdt', 'doge', 'xrp', 'sol', 'bnb', '18k', 'ounce', 'emami', 'azadi']</default>
+      <summary>Visible Assets</summary>
+      <description>Array of asset IDs to show in the dropdown menu.</description>
+    </key>
+
+    <key name="show-change-indicator" type="b">
+      <default>true</default>
+      <summary>Show change indicator</summary>
+      <description>Whether to show the up/down arrow (▲/▼) and percentage change.</description>
+    </key>
+
+    <key name="font-family" type="s">
+      <default>'Cantarell'</default>
+      <summary>Font family</summary>
+      <description>Font family for price display (e.g., 'Cantarell', 'Noto Sans', 'DejaVu Sans', 'Monospace').</description>
+    </key>
+
+    <key name="font-size" type="i">
+      <default>13</default>
+      <summary>Font size</summary>
+      <description>Font size in pixels for price display.</description>
+    </key>
+
+  </schema>
+</schemalist>
