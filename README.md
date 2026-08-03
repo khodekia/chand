@@ -1,25 +1,36 @@
-# Chand
-A minimalist GNOME Shell extension that provides live prices for Iranian fiat currencies, cryptocurrencies, and gold directly in your top panel.
-## Features
-- **Fiat Currencies:** Live rates for USD, EUR, GBP, and 25+ other currencies.
-- **Cryptocurrencies:** Live prices from reliable Iranian exchanges (BTC, ETH, USDT, etc.).
-- **Gold & Coins:** Up-to-date Iranian gold and coin market prices.
-- **Customizable:** Toggle exactly which assets you want to see via the extension settings.
-- **Fast & Lightweight:** Fetches data via a API for maximum speed and reliability.
-## Installation
-### Method 1: GNOME Extensions Website
-(Coming soon) You can install Chand directly from [extensions.gnome.org](https://extensions.gnome.org).
-### Method 2: Manual Installation
+
+<div align="center">
+  <img src="chand-logo-512.png" alt="Chand Logo" width="256" />
+  <h1>Chand (چند)</h1>
+  <p>Live cryptocurrency, fiat currency, and gold prices in Iranian Toman/Rial right on your GNOME desktop.</p>
+</div>
+---
+**Chand** (Persian for "How much?") is a GNOME Shell extension that keeps you updated on the latest financial market prices, specifically tailored for Iranian Toman/Rial conversions.
+## ✨ Features
+- **Real-Time Prices**: View live exchange rates for fiat currencies (USD, EUR, GBP, etc.) and Gold/Coin markets directly in your GNOME top panel.
+- **Cryptocurrency Support**: Track live prices for Bitcoin, Ethereum, and other major cryptocurrencies.
+- **Customizable**: Choose exactly which currencies and assets you want to see via the GNOME Extensions preferences window.
+- **Native Integration**: Blends seamlessly with the modern GNOME Shell UI.
+- **EGO Compliant**: Built with asynchronous API calls to ensure zero impact on GNOME Shell performance.
+## 💻 Compatibility
+- **GNOME Shell**: 49, 50
+## 📦 Installation
+### From GNOME Extensions (Recommended)
+The easiest way to install Chand is directly from the official GNOME Extensions website.
+*(Link will be available here once published)*
+### Manual Installation
 1. Clone this repository:
    ```bash
-   git clone https://github.com/kiavash/chand.git
-   cd chand
+   git clone https://github.com/khodekia/chand.git
    ```
-2. Run the install script:
+2. Run the build script to install the extension:
    ```bash
+   cd chand
    ./install.sh
    ```
-3. Restart GNOME Shell (Press `Alt+F2`, type `r`, and hit `Enter` on X11, or log out and log back in on Wayland).
+   *Alternatively, you can manually pack the extension using `gnome-extensions pack` and install the resulting zip file.*
+3. Log out and log back in (or restart GNOME Shell).
 4. Enable the extension using the **Extensions** app.
-## License
-MIT
+## ⚙️ Configuration
+You can configure Chand by opening the **Extensions** app in GNOME and clicking the settings icon next to Chand. From there, you can toggle specific currencies and assets on or off to declutter your top panel.
+## ❤️ Support & Donations
