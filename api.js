@@ -178,15 +178,18 @@ export class ApiClient {
                 const currencies = {};
                 const gold = {};
 
-                const parsePrice = (str) => {
+                const parsePrice = (str, id) => {
                     if (!str) return 0;
-                    return parseInt(str.toString().replace(/,/g, ''), 10) * 10;
+                    const val = parseFloat(str.toString().replace(/,/g, ''));
+                    // Ounce is in USD, so we shouldn't multiply by 10 (Toman to Rial)
+                    if (id === 'ounce') return val;
+                    return val * 10;
                 };
 
                 const processAsset = (asset, targetObj) => {
                     const priceStr = data[asset.slug];
                     if (priceStr) {
-                        const newPrice = parsePrice(priceStr);
+                        const newPrice = parsePrice(priceStr, asset.id);
                         let change = 0;
                         
                         if (this._lastPrices[asset.id]) {
