@@ -1,9 +1,9 @@
 {
     "uuid": "chand@nirvanatech.ir",
     "name": "Chand",
-    "description": "Live cryptocurrency, fiat currency, and gold prices in Iranian Toman/Rial — نرخ لحظه‌ای ارز، رمزارز و طلا",
+    "description": "Live cryptocurrency, fiat currency, and gold prices in Iranian Toman/Rial",
     "shell-version": ["49", "50"],
-    "version": 1,
+    "version": 6,
     "settings-schema": "org.gnome.shell.extensions.chand",
-    "url": "https://github.com/kiavash/chand"
+    "url": "https://github.com/khodekia/chand"
 }

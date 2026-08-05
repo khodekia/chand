@@ -55,9 +55,9 @@ export const GOLD_ASSETS = [
 
 // ─── Category Labels ────────────────────────────────────────────
 export const CATEGORIES = {
-    currencies: { en: '💱 Currencies',       fa: '💱 ارزها' },
-    crypto:     { en: '₿ Cryptocurrencies',  fa: '₿ رمزارزها' },
-    gold:       { en: '🪙 Gold & Coins',     fa: '🪙 طلا و سکه' },
+    currencies: { en: 'Currencies',       fa: 'ارزها' },
+    crypto:     { en: 'Cryptocurrencies', fa: 'رمزارزها' },
+    gold:       { en: 'Gold & Coins',     fa: 'طلا و سکه' },
 };
 
 // ─── Aggregated asset list (for panel ticker lookup) ────────────

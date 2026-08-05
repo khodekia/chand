@@ -23,12 +23,11 @@ export default class ChandExtension extends Extension {
         Main.panel.addToStatusArea(this.uuid, this._indicator);
 
         // Wire indicator signals
-        this._refreshSignalId = this._indicator.connect('refresh-requested', () => {
-            this._fetchPrices();
-        });
-        this._prefsSignalId = this._indicator.connect('preferences-requested', () => {
-            this.openPreferences();
-        });
+        this._indicator.connectObject(
+            'refresh-requested', () => this._fetchPrices(),
+            'preferences-requested', () => this.openPreferences(),
+            this
+        );
 
         // React to settings changes that affect display only
         const displayKeys = [
@@ -36,18 +35,17 @@ export default class ChandExtension extends Extension {
             'visible-assets', 'show-change-indicator', 
             'font-family', 'font-size',
         ];
+        
         for (const key of displayKeys) {
-            const hid = this._settings.connect(`changed::${key}`, () => {
+            this._settings.connectObject(`changed::${key}`, () => {
                 this._indicator.refreshDisplay();
-            });
-            this._settingsHandlers.push(hid);
+            }, this);
         }
 
         // React to interval change by restarting the timer
-        const intHid = this._settings.connect('changed::update-interval', () => {
+        this._settings.connectObject('changed::update-interval', () => {
             this._restartTimer();
-        });
-        this._settingsHandlers.push(intHid);
+        }, this);
 
         // Start periodic fetching and do an immediate first fetch
         this._startTimer();
@@ -58,22 +56,14 @@ export default class ChandExtension extends Extension {
         this._stopTimer();
 
         // Disconnect all settings handlers
-        for (const hid of this._settingsHandlers) {
-            this._settings.disconnect(hid);
+        if (this._settings) {
+            this._settings.disconnectObject(this);
+            this._settings = null;
         }
-        this._settingsHandlers = [];
 
         // Tear down indicator
         if (this._indicator) {
-            if (this._refreshSignalId) {
-                this._indicator.disconnect(this._refreshSignalId);
-                this._refreshSignalId = null;
-            }
-            if (this._prefsSignalId) {
-                this._indicator.disconnect(this._prefsSignalId);
-                this._prefsSignalId = null;
-            }
-            
+            this._indicator.disconnectObject(this);
             this._indicator.destroy();
             this._indicator = null;
         }
@@ -83,8 +73,6 @@ export default class ChandExtension extends Extension {
             this._api.destroy();
             this._api = null;
         }
-
-        this._settings = null;
     }
 
     // ── Price fetching ──────────────────────────────────────────
@@ -106,6 +94,7 @@ export default class ChandExtension extends Extension {
     // ── Timer management ────────────────────────────────────────
 
     _startTimer() {
+        this._stopTimer();
         const interval = this._settings.get_int('update-interval');
         this._timeoutId = GLib.timeout_add_seconds(
             GLib.PRIORITY_DEFAULT,

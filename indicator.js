@@ -43,7 +43,7 @@ export const ChandIndicator = GObject.registerClass(
             });
 
             this._panelLabel = new St.Label({
-                text:        '💰 …',
+                text:        '…',
                 style_class: 'chand-panel-label',
                 y_align:     Clutter.ActorAlign.CENTER,
             });
@@ -86,7 +86,7 @@ export const ChandIndicator = GObject.registerClass(
 
             const asset = ALL_ASSETS.find(a => a.id === tickerId);
             if (!asset) {
-                this._panelLabel.set_text('💰 …');
+                this._panelLabel.set_text('…');
                 this._panelLabel.style_class = 'chand-panel-label';
                 this._panelLabel.set_style(fontStyle);
                 return;
@@ -245,31 +245,45 @@ export const ChandIndicator = GObject.registerClass(
                 style:    'spacing: 8px;',
             });
 
+            // Helper to create an icon button
+            const createBtn = (iconName, text) => {
+                const btnBox = new St.BoxLayout({ style: 'spacing: 6px;' });
+                const icon = new St.Icon({ icon_name: iconName, icon_size: 16 });
+                const label = new St.Label({ text: text, y_align: Clutter.ActorAlign.CENTER });
+                label.set_style(fontStyle);
+                btnBox.add_child(icon);
+                btnBox.add_child(label);
+                
+                return new St.Button({
+                    child: btnBox,
+                    style_class: 'chand-footer-btn',
+                    can_focus: true,
+                });
+            };
+
             // Refresh
-            const refreshBtn = new St.Button({
-                label:       lang === 'fa' ? '🔄 بروزرسانی' : '🔄 Refresh',
-                style_class: 'chand-footer-btn',
-                can_focus:   true,
-            });
-            refreshBtn.set_style(fontStyle);
+            const refreshBtn = createBtn('view-refresh-symbolic', lang === 'fa' ? 'بروزرسانی' : 'Refresh');
             refreshBtn.connect('clicked', () => {
                 this.emit('refresh-requested');
             });
 
             // Settings
-            const settingsBtn = new St.Button({
-                label:       lang === 'fa' ? '⚙ تنظیمات' : '⚙ Settings',
-                style_class: 'chand-footer-btn',
-                can_focus:   true,
-            });
-            settingsBtn.set_style(fontStyle);
+            const settingsBtn = createBtn('preferences-system-symbolic', lang === 'fa' ? 'تنظیمات' : 'Settings');
             settingsBtn.connect('clicked', () => {
                 this.emit('preferences-requested');
                 this.menu.close();
             });
 
+            // Support
+            const supportBtn = createBtn('emblem-favorite-symbolic', lang === 'fa' ? 'حمایت' : 'Support');
+            supportBtn.connect('clicked', () => {
+                Gio.AppInfo.launch_default_for_uri('https://khodekia.github.io/support', null);
+                this.menu.close();
+            });
+
             box.add_child(refreshBtn);
             box.add_child(settingsBtn);
+            box.add_child(supportBtn);
             footerItem.add_child(box);
             this.menu.addMenuItem(footerItem);
         }

@@ -4,7 +4,7 @@
 //   • Nobitex  — crypto prices in Iranian Rial (POST, no auth)
 //   • TGJU     — fiat & gold prices in Toman   (GET, no auth)
 //
-import Soup from 'gi://Soup?version=3.0';
+import Soup from 'gi://Soup';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
@@ -245,6 +245,9 @@ export class ApiClient {
     // ── Cleanup ─────────────────────────────────────────────────
 
     destroy() {
-        this._session = null;
+        if (this._session) {
+            this._session.abort();
+            this._session = null;
+        }
     }
 }
