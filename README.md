@@ -22,7 +22,7 @@
 
 ### From GNOME Extensions (Recommended)
 The easiest way to install Chand is directly from the official GNOME Extensions website.
-*(Link will be available here once published)*
+[Gnome Extensions Page](https://extensions.gnome.org/extension/10618/chand/)
 
 ### Manual Installation
 1. Clone this repository:
