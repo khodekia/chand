@@ -1,9 +1,9 @@
 {
-    "uuid": "chand@nirvanatech.ir",
-    "name": "Chand",
-    "description": "Live cryptocurrency, fiat currency, and gold prices in Iranian Toman/Rial",
-    "shell-version": ["49", "50"],
-    "version": 6.1,
-    "settings-schema": "org.gnome.shell.extensions.chand",
-    "url": "https://github.com/khodekia/chand"
+  "uuid": "chand@nirvanatech.ir",
+  "name": "Chand",
+  "description": "Live Iranian market rates in your top bar: US dollar and 27 other currencies, gold, coins, Bitcoin and the Tehran Stock Exchange index. Pick several rates to scroll in the top bar, in Persian or English, priced in Toman or Rial.",
+  "shell-version": ["49", "50"],
+  "url": "https://github.com/khodekia/chand",
+  "version": 8,
+  "settings-schema": "org.gnome.shell.extensions.chand"
 }

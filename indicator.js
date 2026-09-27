@@ -1,291 +1,217 @@
-// ─── Panel Indicator for Chand Extension ────────────────────────
-import GObject  from 'gi://GObject';
-import St       from 'gi://St';
-import Clutter  from 'gi://Clutter';
-import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
-import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
-
+import Clutter from "gi://Clutter";
+import GObject from "gi://GObject";
+import Pango from "gi://Pango";
+import St from "gi://St";
+import * as PanelMenu from "resource:///org/gnome/shell/ui/panelMenu.js";
 import {
-    CRYPTO_ASSETS,
-    CURRENCY_ASSETS,
-    GOLD_ASSETS,
-    CATEGORIES,
-    ALL_ASSETS,
-} from './constants.js';
+  ALL_SYMBOLS,
+  MARQUEE_GAP_STYLES,
+  MIN_VIEWPORT_WIDTH,
+  SPEED_MAP,
+  UI_STRINGS,
+} from "./constants.js";
+import { MenuBuilder } from "./menuBuilder.js";
+import { formatChange, formatValue } from "./utils.js";
 
-import {
-    formatPrice,
-    formatChange,
-    getChangeStyleClass,
-    formatTimestamp,
-} from './utils.js';
+// Settings that change how the text scrolls, but not the text itself.
+const MARQUEE_KEYS = ["marquee-gap-style", "marquee-speed", "max-width"];
+const TEXT_KEYS = ["show-change-indicator", "separator"];
 
-// ─────────────────────────────────────────────────────────────────
-export const ChandIndicator = GObject.registerClass(
-    {
-        Signals: {
-            'refresh-requested':     {},
-            'preferences-requested': {},
-        },
-    },
-    class ChandIndicator extends PanelMenu.Button {
+const ChandIndicator = GObject.registerClass(
+  class ChandIndicator extends PanelMenu.Button {
+    _init(settings, extension) {
+      super._init(0.0, "Chand");
+      this._settings = settings;
+      this._snapshot = null;
+      this._panelText = null;
+      this._marquee = null;
 
-        // ── Construction ────────────────────────────────────────
-        _init(settings) {
-            super._init(0.0, 'Chand');
+      this._initTicker();
 
-            this._settings = settings;
-            this._prices   = { crypto: {}, currencies: {}, gold: {} };
+      this._menuBuilder = new MenuBuilder(settings, extension);
+      this._menuBuilder.build(this.menu);
+      this.menu.actor.add_style_class_name("chand-menu");
 
-            // Top-bar container
-            this._panelBox = new St.BoxLayout({
-                style_class: 'panel-status-menu-box',
-            });
+      this._settings.connectObject(
+        "changed",
+        (_settings, key) => this._onSettingChanged(key),
+        this,
+      );
+      // Hold the text still while the pointer is over it, so it can be read.
+      this.connect("notify::hover", () => this._syncMarqueePaused());
+      this.connect("destroy", () => this._marquee?.stop());
+    }
 
-            this._panelLabel = new St.Label({
-                text:        '…',
-                style_class: 'chand-panel-label',
-                y_align:     Clutter.ActorAlign.CENTER,
-            });
+    _initTicker() {
+      this._viewport = new St.Bin({
+        clip_to_allocation: true,
+        style_class: "chand-viewport",
+      });
 
-            this._panelBox.add_child(this._panelLabel);
-            this.add_child(this._panelBox);
+      this._track = new St.Widget({
+        layout_manager: new Clutter.FixedLayout(),
+        y_expand: true,
+        y_align: Clutter.ActorAlign.CENTER,
+      });
 
-            // Render the dropdown with placeholder data
-            this._buildMenu();
+      // Two copies of the text, so the scrolling loop has no visible seam.
+      this._labels = [0, 1].map(() => {
+        const label = new St.Label({
+          y_align: Clutter.ActorAlign.CENTER,
+          y_expand: true,
+        });
+        label.clutter_text.set_line_wrap(false);
+        label.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
+        this._track.add_child(label);
+        return label;
+      });
+
+      this._viewport.set_child(this._track);
+      this.add_child(this._viewport);
+    }
+
+    setRates(snapshot) {
+      this._snapshot = snapshot;
+      this._render();
+    }
+
+    setStatus(status) {
+      this._menuBuilder.setStatus(status);
+    }
+
+    _getLang() {
+      return this._settings.get_string("language") === "fa" ? "fa" : "en";
+    }
+
+    _onSettingChanged(key) {
+      if (key === "language" || key === "display-unit") {
+        this._menuBuilder.updateLanguage();
+        this._render();
+      } else if (key === "panel-symbols") {
+        this._menuBuilder.syncChecks();
+        this._render();
+      } else if (TEXT_KEYS.includes(key)) {
+        this._render();
+      } else if (MARQUEE_KEYS.includes(key)) {
+        this._layoutTicker();
+      } else if (key === "show-last-updated") {
+        this._menuBuilder.updateStatus();
+      }
+    }
+
+    _render() {
+      const lang = this._getLang();
+      const unit = this._settings.get_string("display-unit");
+      const inPanel = new Set(this._settings.get_strv("panel-symbols"));
+      const showChange = this._settings.get_boolean("show-change-indicator");
+      const parts = [];
+
+      for (const symbol of ALL_SYMBOLS) {
+        const rate = this._snapshot?.rates[symbol.id];
+        if (!rate) {
+          this._menuBuilder.setValue(symbol.id, null, null);
+          continue;
         }
 
-        // ── Public API ──────────────────────────────────────────
+        const value = formatValue(symbol, rate.value, unit, lang);
+        const change = formatChange(rate.change, lang);
+        this._menuBuilder.setValue(symbol.id, value, change);
 
-        /** Called by extension.js whenever new prices arrive. */
-        updatePrices(prices) {
-            this._prices = prices;
-            this._refreshDisplay();
-        }
+        if (!inPanel.has(symbol.id)) continue;
 
-        /** Rebuild panel label + dropdown without re-fetching. */
-        refreshDisplay() {
-            this._refreshDisplay();
-        }
+        const suffix = showChange && change ? ` ${change.text}` : "";
+        parts.push(`${symbol.shortLabels[lang]} ${value}${suffix}`);
+      }
 
-        // ── Internals ───────────────────────────────────────────
+      this._menuBuilder.setLastUpdated(this._snapshot?.updated);
 
-        _refreshDisplay() {
-            this._updatePanelLabel();
-            this._buildMenu();
-        }
+      const separator = this._settings.get_string("separator") || "|";
+      const text = parts.length
+        ? parts.join(`  ${separator}  `)
+        : UI_STRINGS[lang].appName;
 
-        _updatePanelLabel() {
-            const tickerId = this._settings.get_string('panel-ticker');
-            const lang     = this._settings.get_string('language');
-            const unit     = this._settings.get_string('display-unit');
-            const showChange = this._settings.get_boolean('show-change-indicator');
-            const fontFamily = this._settings.get_string('font-family');
-            const fontSize = this._settings.get_int('font-size');
-            const fontStyle = `font-family: '${fontFamily}'; font-size: ${fontSize}px;`;
+      // Restarting the marquee on every refresh would make it jump back to
+      // the start, so only lay out again when the text actually changed.
+      if (text !== this._panelText) {
+        this._panelText = text;
+        this._layoutTicker();
+      }
+    }
 
-            const asset = ALL_ASSETS.find(a => a.id === tickerId);
-            if (!asset) {
-                this._panelLabel.set_text('…');
-                this._panelLabel.style_class = 'chand-panel-label';
-                this._panelLabel.set_style(fontStyle);
-                return;
-            }
+    _layoutTicker() {
+      if (this._panelText === null) return;
 
-            // Look up price data across all categories
-            const priceData =
-                this._prices.crypto?.[tickerId]     ??
-                this._prices.currencies?.[tickerId]  ??
-                this._prices.gold?.[tickerId]        ?? null;
+      this._stopMarquee();
 
-            if (!priceData) {
-                this._panelLabel.set_text(`${asset.symbol} …`);
-                this._panelLabel.style_class = 'chand-panel-label';
-                this._panelLabel.set_style(fontStyle);
-                return;
-            }
+      const [labelA, labelB] = this._labels;
+      const { scale_factor: scale } = St.ThemeContext.get_for_stage(
+        global.stage,
+      );
+      const maxWidth = this._settings.get_int("max-width") * scale;
 
-            const price     = formatPrice(priceData.price, unit, lang);
-            const changeStr = showChange ? formatChange(priceData.change, lang) : '';
-            const cls       = getChangeStyleClass(priceData.change);
+      labelA.text = this._panelText;
+      labelA.set_position(0, 0);
+      labelB.hide();
 
-            this._panelLabel.set_text(`${asset.symbol} ${price}${showChange ? ' ' + changeStr : ''}`);
-            this._panelLabel.style_class = `chand-panel-label ${cls}`;
-            this._panelLabel.set_style(fontStyle);
-        }
+      const [, textWidth] = labelA.get_preferred_width(-1);
+      if (textWidth <= maxWidth) {
+        this._viewport.width = Math.ceil(
+          Math.max(MIN_VIEWPORT_WIDTH * scale, textWidth),
+        );
+        return;
+      }
 
-        // ── Menu builder ────────────────────────────────────────
+      const gapStyle = this._settings.get_string("marquee-gap-style");
+      const gap = MARQUEE_GAP_STYLES[gapStyle] ?? MARQUEE_GAP_STYLES.dot;
+      labelA.text = labelB.text = this._panelText + gap;
 
-        _buildMenu() {
-            this.menu.removeAll();
+      // Whole pixels keep the loop seamless and the text sharp while moving.
+      const unitWidth = Math.ceil(labelA.get_preferred_width(-1)[1]);
+      this._viewport.width = maxWidth;
 
-            const lang = this._settings.get_string('language');
-            const unit = this._settings.get_string('display-unit');
-            const showChange = this._settings.get_boolean('show-change-indicator');
-            const fontFamily = this._settings.get_string('font-family');
-            const fontSize = this._settings.get_int('font-size');
-            const fontStyle = `font-family: '${fontFamily}'; font-size: ${fontSize}px;`;
+      // Persian reads right to left, so its text enters from the left edge
+      // and moves right; English enters from the right and moves left.
+      const rtl = this._getLang() === "fa";
+      labelB.set_position(rtl ? -unitWidth : unitWidth, 0);
+      labelB.show();
 
-            const unitLabel = unit === 'toman'
-                ? (lang === 'fa' ? 'تومان' : 'Toman')
-                : (lang === 'fa' ? 'ریال'  : 'Rial');
+      const speedKey = this._settings.get_string("marquee-speed");
+      const speed = (SPEED_MAP[speedKey] ?? SPEED_MAP.medium) * scale;
+      const from = rtl ? maxWidth - unitWidth : 0;
+      const distance = rtl ? unitWidth : -unitWidth;
 
-            // ── Title ──
-            const titleText = lang === 'fa'
-                ? `چند — نرخ لحظه‌ای (${unitLabel})`
-                : `Chand — Live Prices (${unitLabel})`;
+      this._track.translation_x = from;
+      this._startMarquee(from, distance, speed);
+    }
 
-            const titleItem = new PopupMenu.PopupMenuItem(titleText, { reactive: false });
-            this.menu.addMenuItem(titleItem);
+    // Driven by a timeline on the stage's frame clock instead of a GLib
+    // timer, so it moves in step with the display.
+    _startMarquee(from, distance, pixelsPerSecond) {
+      this._marquee = new Clutter.Timeline({
+        actor: this._track,
+        duration: Math.round((Math.abs(distance) / pixelsPerSecond) * 1000),
+        repeat_count: -1,
+      });
+      this._marquee.connect("new-frame", (timeline) => {
+        const x = Math.round(from + distance * timeline.get_progress());
+        if (x !== this._track.translation_x) this._track.translation_x = x;
+      });
+      this._syncMarqueePaused();
+    }
 
-            // ── Category sections ──
-            const visibleAssets = this._settings.get_strv('visible-assets');
+    _stopMarquee() {
+      if (!this._marquee) return;
+      this._marquee.stop();
+      this._marquee = null;
+      this._track.translation_x = 0;
+    }
 
-            const visibleCurrencies = CURRENCY_ASSETS.filter(a => visibleAssets.includes(a.id));
-            if (visibleCurrencies.length > 0)
-                this._addSection(CATEGORIES.currencies[lang], visibleCurrencies, this._prices.currencies, lang, unit, showChange, fontStyle);
-
-            const visibleCrypto = CRYPTO_ASSETS.filter(a => visibleAssets.includes(a.id));
-            if (visibleCrypto.length > 0)
-                this._addSection(CATEGORIES.crypto[lang], visibleCrypto, this._prices.crypto, lang, unit, showChange, fontStyle);
-
-            const visibleGold = GOLD_ASSETS.filter(a => visibleAssets.includes(a.id));
-            if (visibleGold.length > 0)
-                this._addSection(CATEGORIES.gold[lang], visibleGold, this._prices.gold, lang, unit, showChange, fontStyle);
-
-            // ── Footer ──
-            this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-
-            // Last-updated timestamp
-            const timeStr    = formatTimestamp(lang);
-            const updateText = lang === 'fa'
-                ? `آخرین بروزرسانی: ${timeStr}`
-                : `Last update: ${timeStr}`;
-            const updateItem = new PopupMenu.PopupMenuItem(updateText, { reactive: false });
-            updateItem.label.add_style_class_name('chand-timestamp');
-            updateItem.label.set_style(fontStyle);
-            this.menu.addMenuItem(updateItem);
-
-            // Action buttons
-            this._addFooterButtons(lang, fontStyle);
-        }
-
-        _addSection(headerLabel, assets, priceMap, lang, unit, showChange, fontStyle) {
-            this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem(headerLabel));
-
-            for (const asset of assets) {
-                const data = priceMap?.[asset.id];
-                const name = lang === 'fa' ? asset.fa : asset.en;
-
-                const item = new PopupMenu.PopupBaseMenuItem({ reactive: false });
-
-                const row = new St.BoxLayout({
-                    style_class: 'chand-price-row',
-                    x_expand:    true,
-                });
-
-                // Name column
-                const nameLabel = new St.Label({
-                    text:        `${asset.symbol}  ${name}`,
-                    style_class: 'chand-price-name',
-                    x_expand:    true,
-                    x_align:     Clutter.ActorAlign.START,
-                    y_align:     Clutter.ActorAlign.CENTER,
-                });
-                nameLabel.set_style(fontStyle);
-                row.add_child(nameLabel);
-
-                if (data && data.price !== null && data.price !== undefined) {
-                    // Price column
-                    const priceLabel = new St.Label({
-                        text:        formatPrice(data.price, unit, lang),
-                        style_class: 'chand-price-value',
-                        x_align:     Clutter.ActorAlign.END,
-                        y_align:     Clutter.ActorAlign.CENTER,
-                    });
-                    priceLabel.set_style(fontStyle);
-
-                    if (showChange) {
-                        // Change column
-                        const changeLabel = new St.Label({
-                            text:        formatChange(data.change, lang),
-                            style_class: `chand-price-change ${getChangeStyleClass(data.change)}`,
-                            x_align:     Clutter.ActorAlign.END,
-                            y_align:     Clutter.ActorAlign.CENTER,
-                        });
-                        changeLabel.set_style(fontStyle);
-
-                        row.add_child(priceLabel);
-                        row.add_child(changeLabel);
-                    } else {
-                        row.add_child(priceLabel);
-                    }
-                } else {
-                    // Loading placeholder
-                    const dotLabel = new St.Label({
-                        text:        '…',
-                        style_class: 'chand-price-value chand-loading-text',
-                        x_align:     Clutter.ActorAlign.END,
-                        y_align:     Clutter.ActorAlign.CENTER,
-                    });
-                    dotLabel.set_style(fontStyle);
-                    row.add_child(dotLabel);
-                }
-
-                item.add_child(row);
-                this.menu.addMenuItem(item);
-            }
-        }
-
-        _addFooterButtons(lang, fontStyle) {
-            const footerItem = new PopupMenu.PopupBaseMenuItem({ reactive: false });
-            const box = new St.BoxLayout({
-                x_expand: true,
-                x_align:  Clutter.ActorAlign.CENTER,
-                style:    'spacing: 8px;',
-            });
-
-            // Helper to create an icon button
-            const createBtn = (iconName, text) => {
-                const btnBox = new St.BoxLayout({ style: 'spacing: 6px;' });
-                const icon = new St.Icon({ icon_name: iconName, icon_size: 16 });
-                const label = new St.Label({ text: text, y_align: Clutter.ActorAlign.CENTER });
-                label.set_style(fontStyle);
-                btnBox.add_child(icon);
-                btnBox.add_child(label);
-                
-                return new St.Button({
-                    child: btnBox,
-                    style_class: 'chand-footer-btn',
-                    can_focus: true,
-                });
-            };
-
-            // Refresh
-            const refreshBtn = createBtn('view-refresh-symbolic', lang === 'fa' ? 'بروزرسانی' : 'Refresh');
-            refreshBtn.connect('clicked', () => {
-                this.emit('refresh-requested');
-            });
-
-            // Settings
-            const settingsBtn = createBtn('preferences-system-symbolic', lang === 'fa' ? 'تنظیمات' : 'Settings');
-            settingsBtn.connect('clicked', () => {
-                this.emit('preferences-requested');
-                this.menu.close();
-            });
-
-            // Support
-            const supportBtn = createBtn('emblem-favorite-symbolic', lang === 'fa' ? 'حمایت' : 'Support');
-            supportBtn.connect('clicked', () => {
-                Gio.AppInfo.launch_default_for_uri('https://khodekia.github.io/support', null);
-                this.menu.close();
-            });
-
-            box.add_child(refreshBtn);
-            box.add_child(settingsBtn);
-            box.add_child(supportBtn);
-            footerItem.add_child(box);
-            this.menu.addMenuItem(footerItem);
-        }
-    },
+    _syncMarqueePaused() {
+      if (!this._marquee) return;
+      if (this.hover) this._marquee.pause();
+      else this._marquee.start();
+    }
+  },
 );
+
+export default ChandIndicator;

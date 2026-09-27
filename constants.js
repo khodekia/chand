@@ -1,78 +1,252 @@
-// ─── API Endpoints ───────────────────────────────────────────────
-export const NOBITEX_API_URL = 'https://apiv2.nobitex.ir/market/stats';
-export const CHAND_API_URL   = 'https://api.chand.nirvanatech.ir/';
+export const API_URL = "https://api.chand.nirvanatech.ir/";
+export const SUPPORT_URL = "https://khodekia.github.io/support";
 
-// ─── Crypto Assets (Nobitex — priced in Rial) ───────────────────
-export const CRYPTO_ASSETS = [
-    { id: 'btc',  pair: 'btc-rls',  en: 'Bitcoin',       fa: 'بیت‌کوین',      symbol: '₿' },
-    { id: 'eth',  pair: 'eth-rls',  en: 'Ethereum',      fa: 'اتریوم',        symbol: 'Ξ' },
-    { id: 'usdt', pair: 'usdt-rls', en: 'Tether (USDT)', fa: 'تتر',           symbol: '₮' },
-    { id: 'doge', pair: 'doge-rls', en: 'Dogecoin',      fa: 'دوج‌کوین',      symbol: 'Ð' },
-    { id: 'xrp',  pair: 'xrp-rls',  en: 'Ripple (XRP)',  fa: 'ریپل',          symbol: '✕' },
-    { id: 'sol',  pair: 'sol-rls',  en: 'Solana',        fa: 'سولانا',        symbol: '◎' },
-    { id: 'bnb',  pair: 'bnb-rls',  en: 'BNB',           fa: 'بایننس کوین',   symbol: '◆' },
-];
+// Pixel sizes are logical; they get multiplied by the display scale factor.
+export const MIN_VIEWPORT_WIDTH = 50;
 
-// ─── Fiat Currencies (Bonbast API) ──────────────────────────────
-export const CURRENCY_ASSETS = [
-    { id: 'usd', slug: 'usd1', symbol: '$', en: 'US Dollar', fa: 'دلار آمریکا' },
-    { id: 'eur', slug: 'eur1', symbol: '€', en: 'Euro', fa: 'یورو' },
-    { id: 'gbp', slug: 'gbp1', symbol: '£', en: 'British Pound', fa: 'پوند انگلیس' },
-    { id: 'cad', slug: 'cad1', symbol: 'C$', en: 'Canadian Dollar', fa: 'دلار کانادا' },
-    { id: 'aud', slug: 'aud1', symbol: 'A$', en: 'Australian Dollar', fa: 'دلار استرالیا' },
-    { id: 'chf', slug: 'chf1', symbol: 'CHF', en: 'Swiss Franc', fa: 'فرانک سوئیس' },
-    { id: 'aed', slug: 'aed1', symbol: 'د.إ', en: 'UAE Dirham', fa: 'درهم امارات' },
-    { id: 'try', slug: 'try1', symbol: '₺', en: 'Turkish Lira', fa: 'لیر ترکیه' },
-    { id: 'cny', slug: 'cny1', symbol: '¥', en: 'Chinese Yuan', fa: 'یوان چین' },
-    { id: 'jpy', slug: 'jpy1', symbol: '¥', en: 'Japanese Yen', fa: 'ین ژاپن' },
-    { id: 'rub', slug: 'rub1', symbol: '₽', en: 'Russian Ruble', fa: 'روبل روسیه' },
-    { id: 'inr', slug: 'inr1', symbol: '₹', en: 'Indian Rupee', fa: 'روپیه هند' },
-    { id: 'sek', slug: 'sek1', symbol: 'kr', en: 'Swedish Krona', fa: 'کرون سوئد' },
-    { id: 'nok', slug: 'nok1', symbol: 'kr', en: 'Norwegian Krone', fa: 'کرون نروژ' },
-    { id: 'dkk', slug: 'dkk1', symbol: 'kr', en: 'Danish Krone', fa: 'کرون دانمارک' },
-    { id: 'afn', slug: 'afn1', symbol: '؋', en: 'Afghan Afghani', fa: 'افغانی افغانستان' },
-    { id: 'iqd', slug: 'iqd1', symbol: 'ع.د', en: 'Iraqi Dinar', fa: 'دینار عراق' },
-    { id: 'kwd', slug: 'kwd1', symbol: 'د.ك', en: 'Kuwaiti Dinar', fa: 'دینار کویت' },
-    { id: 'sar', slug: 'sar1', symbol: 'ر.س', en: 'Saudi Riyal', fa: 'ریال عربستان' },
-    { id: 'bhd', slug: 'bhd1', symbol: '.د.ب', en: 'Bahraini Dinar', fa: 'دینار بحرین' },
-    { id: 'omr', slug: 'omr1', symbol: 'ر.ع.', en: 'Omani Rial', fa: 'ریال عمان' },
-    { id: 'qar', slug: 'qar1', symbol: 'ر.ق', en: 'Qatari Riyal', fa: 'ریال قطر' },
-    { id: 'amd', slug: 'amd1', symbol: '֏', en: 'Armenian Dram', fa: 'درام ارمنستان' },
-    { id: 'azn', slug: 'azn1', symbol: '₼', en: 'Azerbaijani Manat', fa: 'منات آذربایجان' },
-    { id: 'myr', slug: 'myr1', symbol: 'RM', en: 'Malaysian Ringgit', fa: 'رینگیت مالزی' },
-    { id: 'sgd', slug: 'sgd1', symbol: 'S$', en: 'Singapore Dollar', fa: 'دلار سنگاپور' },
-    { id: 'hkd', slug: 'hkd1', symbol: 'HK$', en: 'Hong Kong Dollar', fa: 'دلار هنگ کنگ' },
-    { id: 'thb', slug: 'thb1', symbol: '฿', en: 'Thai Baht', fa: 'بات تایلند' }
-];
+// After a network failure, try again sooner than the regular interval.
+export const RETRY_SECONDS = 60;
 
-// ─── Gold & Coin Assets (Bonbast — priced in Toman) ────────────
-export const GOLD_ASSETS = [
-    { id: 'gold18', slug: 'gol18',  en: '18K Gold (gram)',  fa: 'طلای ۱۸ عیار (گرم)',  symbol: '✦' },
-    { id: 'ounce',  slug: 'ounce',  en: 'Gold Ounce',       fa: 'انس طلا',              symbol: '▪' },
-    { id: 'emami',  slug: 'emami1', en: 'Emami Coin',       fa: 'سکه امامی',            symbol: '●' },
-    { id: 'azadi',  slug: 'azadi1', en: 'Bahar Azadi',      fa: 'سکه بهار آزادی',       symbol: '○' },
-];
-
-// ─── Category Labels ────────────────────────────────────────────
-export const CATEGORIES = {
-    currencies: { en: 'Currencies',       fa: 'ارزها' },
-    crypto:     { en: 'Cryptocurrencies', fa: 'رمزارزها' },
-    gold:       { en: 'Gold & Coins',     fa: 'طلا و سکه' },
+export const MARQUEE_GAP_STYLES = {
+  space: "             ",
+  dot: "      •    ",
+  dash: "      ———    ",
+  star: "      ★    ",
+  diamond: "      ◆    ",
 };
 
-// ─── Aggregated asset list (for panel ticker lookup) ────────────
-export const ALL_ASSETS = [
-    ...CRYPTO_ASSETS,
-    ...CURRENCY_ASSETS,
-    ...GOLD_ASSETS,
+// Pixels per second.
+export const SPEED_MAP = Object.freeze({ slow: 10, medium: 25, fast: 55 });
+
+export const LANGUAGES = [
+  ["en", "English"],
+  ["fa", "پارسی"],
 ];
 
-// ─── Preference helpers ─────────────────────────────────────────
-export const INTERVAL_OPTIONS = [
-    { value: 60,   en: '1 minute',   fa: '۱ دقیقه' },
-    { value: 120,  en: '2 minutes',  fa: '۲ دقیقه' },
-    { value: 300,  en: '5 minutes',  fa: '۵ دقیقه' },
-    { value: 600,  en: '10 minutes', fa: '۱۰ دقیقه' },
-    { value: 900,  en: '15 minutes', fa: '۱۵ دقیقه' },
-    { value: 1800, en: '30 minutes', fa: '۳۰ دقیقه' },
+// `key` is the field in the API response. `kind` says what the number is:
+// "toman" prices can be shown in Rial too, "usd" prices are US dollars and
+// "index" is a plain index value.
+function symbol(id, key, kind, en, enShort, fa, faShort = fa) {
+  return {
+    id,
+    key,
+    kind,
+    labels: { en, fa },
+    shortLabels: { en: enShort, fa: faShort },
+  };
+}
+
+// The API uses the sell rate ("1" suffix) for currencies.
+function currency(code, en, fa, faShort) {
+  return symbol(code, `${code}1`, "toman", en, code.toUpperCase(), fa, faShort);
+}
+
+export const SYMBOL_GROUPS = [
+  {
+    id: "currency",
+    labels: { en: "Currencies", fa: "ارزها" },
+    symbols: [
+      currency("usd", "US Dollar", "دلار آمریکا", "دلار"),
+      currency("eur", "Euro", "یورو"),
+      currency("gbp", "British Pound", "پوند انگلیس", "پوند"),
+      currency("cad", "Canadian Dollar", "دلار کانادا"),
+      currency("aud", "Australian Dollar", "دلار استرالیا"),
+      currency("chf", "Swiss Franc", "فرانک سوئیس"),
+      currency("aed", "UAE Dirham", "درهم امارات", "درهم"),
+      currency("try", "Turkish Lira", "لیر ترکیه", "لیر"),
+      currency("cny", "Chinese Yuan", "یوان چین", "یوان"),
+      currency("jpy", "Japanese Yen (10)", "ین ژاپن (۱۰)"),
+      currency("rub", "Russian Ruble", "روبل روسیه", "روبل"),
+      currency("inr", "Indian Rupee", "روپیه هند", "روپیه"),
+      currency("sek", "Swedish Krona", "کرون سوئد"),
+      currency("nok", "Norwegian Krone", "کرون نروژ"),
+      currency("dkk", "Danish Krone", "کرون دانمارک"),
+      currency("afn", "Afghan Afghani", "افغانی"),
+      currency("iqd", "Iraqi Dinar (100)", "دینار عراق (۱۰۰)"),
+      currency("kwd", "Kuwaiti Dinar", "دینار کویت"),
+      currency("sar", "Saudi Riyal", "ریال عربستان"),
+      currency("bhd", "Bahraini Dinar", "دینار بحرین"),
+      currency("omr", "Omani Rial", "ریال عمان"),
+      currency("qar", "Qatari Riyal", "ریال قطر"),
+      currency("amd", "Armenian Dram (10)", "درام ارمنستان (۱۰)"),
+      currency("azn", "Azerbaijani Manat", "منات آذربایجان"),
+      currency("myr", "Malaysian Ringgit", "رینگیت مالزی"),
+      currency("sgd", "Singapore Dollar", "دلار سنگاپور"),
+      currency("hkd", "Hong Kong Dollar", "دلار هنگ کنگ"),
+      currency("thb", "Thai Baht", "بات تایلند"),
+    ],
+  },
+  {
+    id: "gold",
+    labels: { en: "Gold & Coins", fa: "طلا و سکه" },
+    symbols: [
+      symbol("gold18", "gol18", "toman", "18K Gold (gram)", "18K Gold",
+        "طلای ۱۸ عیار (گرم)", "طلا ۱۸"),
+      symbol("mithqal", "mithqal", "toman", "Gold Mithqal", "Mithqal",
+        "مثقال طلا", "مثقال"),
+      symbol("ounce", "ounce", "usd", "Gold Ounce", "Ounce",
+        "انس طلا", "انس"),
+      symbol("emami", "emami1", "toman", "Emami Coin", "Emami",
+        "سکه امامی", "امامی"),
+      symbol("azadi", "azadi1", "toman", "Bahar Azadi Coin", "Azadi",
+        "سکه بهار آزادی", "بهار آزادی"),
+      symbol("half-coin", "azadi1_2", "toman", "Half Coin", "Half Coin",
+        "نیم سکه"),
+      symbol("quarter-coin", "azadi1_4", "toman", "Quarter Coin",
+        "Quarter Coin", "ربع سکه"),
+      symbol("gram-coin", "azadi1g", "toman", "1g Coin", "1g Coin",
+        "سکه گرمی"),
+    ],
+  },
+  {
+    id: "other",
+    labels: { en: "Other", fa: "سایر" },
+    symbols: [
+      symbol("bitcoin", "bitcoin", "usd", "Bitcoin", "BTC", "بیت‌کوین"),
+      symbol("bourse", "bourse", "index", "Tehran Stock Exchange Index",
+        "TSE", "شاخص بورس تهران", "بورس"),
+    ],
+  },
 ];
+
+export const ALL_SYMBOLS = SYMBOL_GROUPS.flatMap((group) => group.symbols);
+
+export const PREFS_STRINGS = {
+  en: {
+    pageTitle: "Chand",
+    generalGroup: "General",
+    panelGroup: "Top bar",
+    languageTitle: "Language",
+    unitTitle: "Unit",
+    unitSubtitle: "Currency, gold and coin prices",
+    toman: "Toman",
+    rial: "Rial",
+    intervalTitle: "Refresh interval",
+    intervalSubtitle: "How often to fetch new rates",
+    lastUpdatedTitle: "Show last updated time",
+    lastUpdatedSubtitle: "Display when the rates were last updated, in the menu",
+    positionTitle: "Position",
+    positionSubtitle: "Where the rates sit in the top bar",
+    left: "Left",
+    center: "Center",
+    right: "Right",
+    maxWidthTitle: "Maximum width",
+    maxWidthSubtitle: "Text wider than this scrolls",
+    separatorTitle: "Separator",
+    separatorSubtitle: "Shown between rates in the top bar",
+    changeTitle: "Show change in top bar",
+    changeSubtitle: "Display ▲/▼ and the percentage next to each rate",
+    gapTitle: "Scroll gap style",
+    gapSubtitle: "Shown between repeats of the scrolling text",
+    speedTitle: "Scroll speed",
+    aboutGroup: "About",
+    aboutRow: "Rates in the top bar",
+    aboutSubtitle: "Tick the ones you want from the top bar menu.",
+    sourceRow: "Source code",
+    supportRow: "Support Chand ❤️",
+    slow: "Slow",
+    medium: "Medium",
+    fast: "Fast",
+    minute1: "1 minute",
+    minutes2: "2 minutes",
+    minutes5: "5 minutes",
+    minutes10: "10 minutes",
+    minutes15: "15 minutes",
+    minutes30: "30 minutes",
+    hour1: "1 hour",
+    blankSpace: "Blank space",
+    dot: "Dot: •",
+    dash: "Dash: —",
+    star: "Star: ★",
+    diamond: "Diamond: ◆",
+    pipe: "Pipe: |",
+    middleDot: "Middle dot: ·",
+    dashSymbol: "Dash: -",
+    slash: "Slash: /",
+    space: "Space",
+  },
+  fa: {
+    pageTitle: "چند",
+    generalGroup: "تنظیمات عمومی",
+    panelGroup: "نوار بالا",
+    languageTitle: "زبان",
+    unitTitle: "واحد",
+    unitSubtitle: "واحد قیمت ارز، طلا و سکه",
+    toman: "تومان",
+    rial: "ریال",
+    intervalTitle: "فاصله بروزرسانی",
+    intervalSubtitle: "هر چند وقت یک‌بار نرخ‌ها بروزرسانی شوند",
+    lastUpdatedTitle: "نمایش زمان آخرین بروزرسانی",
+    lastUpdatedSubtitle: "نمایش زمان آخرین بروزرسانی نرخ‌ها در منو",
+    positionTitle: "مکان",
+    positionSubtitle: "جای نمایش نرخ‌ها در نوار بالا",
+    left: "چپ",
+    center: "وسط",
+    right: "راست",
+    maxWidthTitle: "حداکثر عرض",
+    maxWidthSubtitle: "متن پهن‌تر از این اسکرول می‌شود",
+    separatorTitle: "جداکننده",
+    separatorSubtitle: "کاراکتری که بین نرخ‌ها در نوار بالا نمایش داده می‌شود",
+    changeTitle: "نمایش تغییرات در نوار بالا",
+    changeSubtitle: "نمایش ▲/▼ و درصد تغییر کنار هر نرخ",
+    gapTitle: "طرح فاصله بین تکرار متن",
+    gapSubtitle: "طرحی که بین تکرار متن هنگام اسکرول نمایش داده می‌شود",
+    speedTitle: "سرعت اسکرول",
+    aboutGroup: "درباره",
+    aboutRow: "نرخ‌های نوار بالا",
+    aboutSubtitle: "نرخ‌های دلخواه را از منوی نوار بالا تیک بزنید.",
+    sourceRow: "کد منبع",
+    supportRow: "حمایت از چند ❤️",
+    slow: "آهسته",
+    medium: "متوسط",
+    fast: "سریع",
+    minute1: "۱ دقیقه",
+    minutes2: "۲ دقیقه",
+    minutes5: "۵ دقیقه",
+    minutes10: "۱۰ دقیقه",
+    minutes15: "۱۵ دقیقه",
+    minutes30: "۳۰ دقیقه",
+    hour1: "۱ ساعت",
+    blankSpace: "خالی",
+    dot: "نقطه: •",
+    dash: "خط: —",
+    star: "ستاره: ★",
+    diamond: "الماس: ◆",
+    pipe: "خط عمودی: |",
+    middleDot: "نقطه میانی: ·",
+    dashSymbol: "خط تیره: -",
+    slash: "اسلش: /",
+    space: "فاصله",
+  },
+};
+
+export const UI_STRINGS = {
+  en: {
+    appName: "Chand",
+    pricesIn: "Prices in",
+    toman: "Toman",
+    rial: "Rial",
+    language: "Language",
+    lastUpdatedPrefix: "Last updated",
+    lastUpdatedPlaceholder: "Last updated: --",
+    updating: "Updating…",
+    updateFailed: "Couldn't update rates",
+    settings: "Settings",
+    refresh: "Refresh",
+    sourceCode: "Source code",
+  },
+  fa: {
+    appName: "چند",
+    pricesIn: "قیمت‌ها به",
+    toman: "تومان",
+    rial: "ریال",
+    language: "زبان",
+    lastUpdatedPrefix: "آخرین بروزرسانی",
+    lastUpdatedPlaceholder: "آخرین بروزرسانی: --",
+    updating: "در حال بروزرسانی…",
+    updateFailed: "بروزرسانی نرخ‌ها ناموفق بود",
+    settings: "تنظیمات",
+    refresh: "بروزرسانی",
+    sourceCode: "کد منبع",
+  },
+};

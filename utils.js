@@ -1,88 +1,42 @@
-// ─── Persian digit mapping ──────────────────────────────────────
-const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+const PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
 
-/**
- * Convert Latin digits (0-9) to Persian digits (۰-۹).
- */
-export function toPersianDigits(str) {
-    return String(str).replace(/[0-9]/g, (d) => PERSIAN_DIGITS[parseInt(d)]);
+export function localizeDigits(text, lang) {
+  if (lang !== "fa") return text;
+  return text.replace(/[0-9]/g, (digit) => PERSIAN_DIGITS[digit]);
 }
 
-/**
- * Format a number with thousand-separator commas.
- * Returns Persian digits when lang === 'fa'.
- */
-export function formatNumber(num, lang = 'fa') {
-    if (num === null || num === undefined || isNaN(num)) return '—';
-
-    const intPart = Math.floor(Math.abs(num)).toString();
-    const withCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    const result = num < 0 ? `-${withCommas}` : withCommas;
-
-    return lang === 'fa' ? toPersianDigits(result) : result;
+// `value` is in the symbol's own unit: Toman, US dollars or index points.
+export function formatValue(symbol, value, unit, lang) {
+  let text;
+  if (symbol.kind === "usd") {
+    text = `$${value.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+  } else {
+    const shown = symbol.kind === "toman" && unit === "rial" ? value * 10 : value;
+    text = Math.round(shown).toLocaleString("en-US");
+  }
+  return localizeDigits(text, lang);
 }
 
-/**
- * Format a price stored in Rial.
- * If unit === 'toman', divides by 10 first.
- */
-export function formatPrice(priceInRial, unit = 'toman', lang = 'fa') {
-    if (priceInRial === null || priceInRial === undefined) return '—';
-    let price = parseFloat(priceInRial);
-    if (isNaN(price)) return '—';
+// Returns null when there is no change to show yet.
+export function formatChange(change, lang) {
+  if (typeof change !== "number" || !Number.isFinite(change)) return null;
 
-    if (unit === 'toman') {
-        price = Math.round(price / 10);
-    }
-    return formatNumber(price, lang);
+  const percent = localizeDigits(Math.abs(change).toFixed(2), lang);
+  const sign = lang === "fa" ? "٪" : "%";
+  if (change > 0) {
+    return { text: `▲ ${percent}${sign}`, styleClass: "chand-change-up" };
+  }
+  if (change < 0) {
+    return { text: `▼ ${percent}${sign}`, styleClass: "chand-change-down" };
+  }
+  return { text: `• ${percent}${sign}`, styleClass: null };
 }
 
-/**
- * Format a 24-hour change percentage with a directional arrow.
- *   +1.23  →  "▲ 1.23%"
- *   -0.50  →  "▼ 0.50%"
- *    0.00  →  "■ 0.00%"
- */
-export function formatChange(changePercent, lang = 'fa') {
-    if (changePercent === null || changePercent === undefined) return '';
-    const change = parseFloat(changePercent);
-    if (isNaN(change)) return '';
-
-    const arrow    = change > 0 ? '▲' : change < 0 ? '▼' : '■';
-    const absVal   = Math.abs(change).toFixed(2);
-    const formatted = lang === 'fa' ? toPersianDigits(absVal) : absVal;
-
-    return `${arrow} ${formatted}%`;
-}
-
-/**
- * Return the CSS style class name that corresponds to a price direction.
- */
-export function getChangeStyleClass(changePercent) {
-    const change = parseFloat(changePercent);
-    if (isNaN(change) || change === 0) return 'chand-neutral';
-    return change > 0 ? 'chand-up' : 'chand-down';
-}
-
-/**
- * Parse a TGJU formatted price string (e.g. "615,000") to Rial.
- * TGJU prices are in Toman → multiply by 10 for Rial.
- */
-export function parseTgjuPrice(priceStr) {
-    if (!priceStr) return null;
-    const cleaned = String(priceStr).replace(/,/g, '').trim();
-    const num = parseFloat(cleaned);
-    if (isNaN(num)) return null;
-    return num * 10; // Toman → Rial
-}
-
-/**
- * Return a formatted HH:MM timestamp for the current time.
- */
-export function formatTimestamp(lang = 'fa') {
-    const now = new Date();
-    const h = String(now.getHours()).padStart(2, '0');
-    const m = String(now.getMinutes()).padStart(2, '0');
-    const timeStr = `${h}:${m}`;
-    return lang === 'fa' ? toPersianDigits(timeStr) : timeStr;
+export function formatTime(timestamp, lang) {
+  return new Date(timestamp).toLocaleString(lang === "fa" ? "fa-IR" : "en-US", {
+    month: lang === "fa" ? "long" : "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }

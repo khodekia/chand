@@ -1,232 +1,245 @@
-// ─── Chand — Preferences Window ─────────────────────────────────
-import Adw from 'gi://Adw';
-import Gio from 'gi://Gio';
-import Gtk from 'gi://Gtk';
+import Adw from "gi://Adw";
+import Gio from "gi://Gio";
+import GLib from "gi://GLib";
+import Gtk from "gi://Gtk";
+import { ExtensionPreferences } from "resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js";
+import { LANGUAGES, PREFS_STRINGS, SUPPORT_URL } from "./constants.js";
 
-import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
-
-import { 
-    ALL_ASSETS, 
-    INTERVAL_OPTIONS, 
-    CURRENCY_ASSETS, 
-    CRYPTO_ASSETS, 
-    GOLD_ASSETS 
-} from './constants.js';
+// Gtk.Widget.set_default_direction() would also flip every other window in
+// the Extensions app, so set the direction on this window's widgets only.
+function setDirection(widget, direction) {
+  widget.set_direction(direction);
+  let child = widget.get_first_child();
+  while (child) {
+    setDirection(child, direction);
+    child = child.get_next_sibling();
+  }
+}
 
 export default class ChandPreferences extends ExtensionPreferences {
+  fillPreferencesWindow(window) {
+    const settings = this.getSettings();
+    let page = null;
+    let rebuildId = 0;
 
-    fillPreferencesWindow(window) {
-        const settings = this.getSettings();
+    const build = () => {
+      const lang = settings.get_string("language") === "fa" ? "fa" : "en";
+      if (page) window.remove(page);
+      page = this._buildPage(settings, PREFS_STRINGS[lang]);
+      window.add(page);
+      setDirection(
+        window,
+        lang === "fa" ? Gtk.TextDirection.RTL : Gtk.TextDirection.LTR,
+      );
+    };
+    build();
 
-        // ─── General Page ───────────────────────────────────────
-        const page = new Adw.PreferencesPage({
-            title:     'General',
-            icon_name: 'preferences-system-symbolic',
-        });
+    // Switch language in place. Deferred, so the language row isn't destroyed
+    // from inside its own signal handler.
+    const languageChangedId = settings.connect("changed::language", () => {
+      if (rebuildId) return;
+      rebuildId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+        rebuildId = 0;
+        build();
+        return GLib.SOURCE_REMOVE;
+      });
+    });
 
-        // ── Display Settings ────────────────────────────────────
-        const displayGroup = new Adw.PreferencesGroup({
-            title:       'Display Settings — تنظیمات نمایش',
-            description: 'Configure language, unit, and update frequency.',
-        });
+    window.connect("close-request", () => {
+      settings.disconnect(languageChangedId);
+      if (rebuildId) GLib.source_remove(rebuildId);
+      return false;
+    });
+  }
 
-        // Language
-        const langModel = new Gtk.StringList();
-        langModel.append('فارسی (Persian)');
-        langModel.append('English');
+  _buildPage(settings, t) {
+    const page = new Adw.PreferencesPage({ title: t.pageTitle });
 
-        const langRow = new Adw.ComboRow({
-            title:    'Language — زبان',
-            subtitle: 'Display language for the extension UI',
-            model:    langModel,
-        });
+    const generalGroup = new Adw.PreferencesGroup({ title: t.generalGroup });
+    page.add(generalGroup);
 
-        const LANG_MAP = ['fa', 'en'];
-        langRow.set_selected(Math.max(0, LANG_MAP.indexOf(settings.get_string('language'))));
-        langRow.connect('notify::selected', () => {
-            settings.set_string('language', LANG_MAP[langRow.selected]);
-        });
-        displayGroup.add(langRow);
+    generalGroup.add(
+      this._buildComboRow(
+        settings,
+        "language",
+        t.languageTitle,
+        null,
+        LANGUAGES.map(([value, label]) => ({ value, label })),
+      ),
+    );
 
-        // Display unit
-        const unitModel = new Gtk.StringList();
-        unitModel.append('تومان (Toman)');
-        unitModel.append('ریال (Rial)');
+    generalGroup.add(
+      this._buildComboRow(settings, "display-unit", t.unitTitle, t.unitSubtitle, [
+        { value: "toman", label: t.toman },
+        { value: "rial", label: t.rial },
+      ]),
+    );
 
-        const unitRow = new Adw.ComboRow({
-            title:    'Display Unit — واحد نمایش',
-            subtitle: 'How prices are displayed',
-            model:    unitModel,
-        });
+    generalGroup.add(
+      this._buildComboRow(
+        settings,
+        "update-interval",
+        t.intervalTitle,
+        t.intervalSubtitle,
+        [
+          { value: 60, label: t.minute1 },
+          { value: 120, label: t.minutes2 },
+          { value: 300, label: t.minutes5 },
+          { value: 600, label: t.minutes10 },
+          { value: 900, label: t.minutes15 },
+          { value: 1800, label: t.minutes30 },
+          { value: 3600, label: t.hour1 },
+        ],
+      ),
+    );
 
-        const UNIT_MAP = ['toman', 'rial'];
-        unitRow.set_selected(Math.max(0, UNIT_MAP.indexOf(settings.get_string('display-unit'))));
-        unitRow.connect('notify::selected', () => {
-            settings.set_string('display-unit', UNIT_MAP[unitRow.selected]);
-        });
-        displayGroup.add(unitRow);
+    generalGroup.add(
+      this._buildSwitchRow(
+        settings,
+        "show-last-updated",
+        t.lastUpdatedTitle,
+        t.lastUpdatedSubtitle,
+      ),
+    );
 
-        // Update interval
-        const intervalModel = new Gtk.StringList();
-        for (const opt of INTERVAL_OPTIONS) {
-            intervalModel.append(`${opt.en}  —  ${opt.fa}`);
-        }
+    const panelGroup = new Adw.PreferencesGroup({ title: t.panelGroup });
+    page.add(panelGroup);
 
-        const intervalRow = new Adw.ComboRow({
-            title:    'Update Interval — بازه بروزرسانی',
-            subtitle: 'How often prices are refreshed',
-            model:    intervalModel,
-        });
+    panelGroup.add(
+      this._buildComboRow(
+        settings,
+        "panel-position",
+        t.positionTitle,
+        t.positionSubtitle,
+        [
+          { value: "left", label: t.left },
+          { value: "center", label: t.center },
+          { value: "right", label: t.right },
+        ],
+      ),
+    );
 
-        const currentInterval = settings.get_int('update-interval');
-        const intervalIdx     = INTERVAL_OPTIONS.findIndex(o => o.value === currentInterval);
-        intervalRow.set_selected(Math.max(0, intervalIdx));
-        intervalRow.connect('notify::selected', () => {
-            settings.set_int('update-interval', INTERVAL_OPTIONS[intervalRow.selected].value);
-        });
-        displayGroup.add(intervalRow);
+    const maxWidthRow = new Adw.SpinRow({
+      title: t.maxWidthTitle,
+      subtitle: t.maxWidthSubtitle,
+      adjustment: new Gtk.Adjustment({
+        lower: 80,
+        upper: 1000,
+        step_increment: 10,
+        page_increment: 50,
+      }),
+    });
+    settings.bind(
+      "max-width",
+      maxWidthRow,
+      "value",
+      Gio.SettingsBindFlags.DEFAULT,
+    );
+    panelGroup.add(maxWidthRow);
 
-        page.add(displayGroup);
+    panelGroup.add(
+      this._buildComboRow(
+        settings,
+        "separator",
+        t.separatorTitle,
+        t.separatorSubtitle,
+        [
+          { value: "|", label: t.pipe },
+          { value: "•", label: t.dot },
+          { value: "·", label: t.middleDot },
+          { value: "-", label: t.dashSymbol },
+          { value: "/", label: t.slash },
+          { value: " ", label: t.space },
+        ],
+      ),
+    );
 
-        // ── Panel Indicator ─────────────────────────────────────
-        const panelGroup = new Adw.PreferencesGroup({
-            title:       'Panel Indicator — نمایش در نوار بالا',
-            description: 'Choose which price appears in the GNOME top panel.',
-        });
+    panelGroup.add(
+      this._buildSwitchRow(
+        settings,
+        "show-change-indicator",
+        t.changeTitle,
+        t.changeSubtitle,
+      ),
+    );
 
-        const tickerModel = new Gtk.StringList();
-        for (const asset of ALL_ASSETS) {
-            tickerModel.append(`${asset.symbol}  ${asset.en}  —  ${asset.fa}`);
-        }
+    panelGroup.add(
+      this._buildComboRow(
+        settings,
+        "marquee-gap-style",
+        t.gapTitle,
+        t.gapSubtitle,
+        [
+          { value: "space", label: t.blankSpace },
+          { value: "dot", label: t.dot },
+          { value: "dash", label: t.dash },
+          { value: "star", label: t.star },
+          { value: "diamond", label: t.diamond },
+        ],
+      ),
+    );
 
-        const tickerRow = new Adw.ComboRow({
-            title:    'Panel Price — قیمت نوار بالا',
-            subtitle: 'The asset shown directly on the top bar',
-            model:    tickerModel,
-        });
+    panelGroup.add(
+      this._buildComboRow(settings, "marquee-speed", t.speedTitle, null, [
+        { value: "slow", label: t.slow },
+        { value: "medium", label: t.medium },
+        { value: "fast", label: t.fast },
+      ]),
+    );
 
-        const currentTicker = settings.get_string('panel-ticker');
-        const tickerIdx     = ALL_ASSETS.findIndex(a => a.id === currentTicker);
-        tickerRow.set_selected(Math.max(0, tickerIdx));
-        tickerRow.connect('notify::selected', () => {
-            settings.set_string('panel-ticker', ALL_ASSETS[tickerRow.selected].id);
-        });
-        panelGroup.add(tickerRow);
+    const aboutGroup = new Adw.PreferencesGroup({ title: t.aboutGroup });
+    page.add(aboutGroup);
 
-        page.add(panelGroup);
+    aboutGroup.add(
+      new Adw.ActionRow({ title: t.aboutRow, subtitle: t.aboutSubtitle }),
+    );
+    aboutGroup.add(this._buildLinkRow(t.sourceRow, this.metadata.url));
+    aboutGroup.add(this._buildLinkRow(t.supportRow, SUPPORT_URL));
 
-        // ── Add General page to window ──────────────────────────
-        window.add(page);
+    return page;
+  }
 
-        // ─── Assets Page ────────────────────────────────────────
-        const assetsPage = new Adw.PreferencesPage({
-            title:     'Assets',
-            icon_name: 'view-list-symbolic',
-        });
+  _buildSwitchRow(settings, key, title, subtitle) {
+    const row = new Adw.SwitchRow({ title, subtitle });
+    settings.bind(key, row, "active", Gio.SettingsBindFlags.DEFAULT);
+    return row;
+  }
 
-        const createAssetGroup = (title, description, assetList) => {
-            const group = new Adw.PreferencesGroup({
-                title:       title,
-                description: description,
-            });
+  // Works for both integer and string keys; `choices` holds the values.
+  _buildComboRow(settings, key, title, subtitle, choices) {
+    const isInt = settings.get_value(key).get_type_string() === "i";
+    const read = () =>
+      isInt ? settings.get_int(key) : settings.get_string(key);
+    const write = (value) =>
+      isInt ? settings.set_int(key, value) : settings.set_string(key, value);
 
-            const visibleAssets = settings.get_strv('visible-assets');
+    const row = new Adw.ComboRow({
+      title,
+      subtitle: subtitle ?? "",
+      model: Gtk.StringList.new(choices.map((c) => c.label)),
+    });
 
-            for (const asset of assetList) {
-                const switchRow = new Adw.SwitchRow({
-                    title:    `${asset.symbol ? asset.symbol + '  ' : ''}${asset.en} — ${asset.fa}`,
-                    subtitle: asset.id.toUpperCase(),
-                    active:   visibleAssets.includes(asset.id)
-                });
-                
-                switchRow.connect('notify::active', () => {
-                    const currentAssets = settings.get_strv('visible-assets');
-                    if (switchRow.active) {
-                        if (!currentAssets.includes(asset.id)) {
-                            currentAssets.push(asset.id);
-                        }
-                    } else {
-                        const idx = currentAssets.indexOf(asset.id);
-                        if (idx > -1) {
-                            currentAssets.splice(idx, 1);
-                        }
-                    }
-                    settings.set_strv('visible-assets', currentAssets);
-                });
-                
-                group.add(switchRow);
-            }
-            return group;
-        };
+    const currentIndex = choices.findIndex((c) => c.value === read());
+    row.selected = Math.max(currentIndex, 0);
 
-        assetsPage.add(createAssetGroup('💱 Currencies — ارزها', 'Select which fiat currencies to display.', CURRENCY_ASSETS));
-        assetsPage.add(createAssetGroup('₿ Cryptocurrencies — رمزارزها', 'Select which cryptocurrencies to display.', CRYPTO_ASSETS));
-        assetsPage.add(createAssetGroup('🪙 Gold & Coins — طلا و سکه', 'Select which gold and coin assets to display.', GOLD_ASSETS));
+    row.connect("notify::selected", () => {
+      const choice = choices[row.selected];
+      if (choice && choice.value !== read()) write(choice.value);
+    });
 
-        window.add(assetsPage);
+    return row;
+  }
 
-        // ── Appearance Settings ───────────────────────────────────
-        const appearanceGroup = new Adw.PreferencesGroup({
-            title:       'Appearance — ظاهر',
-            description: 'Configure font, change indicator, and other visual options.',
-        });
-
-        // Show change indicator
-        const changeIndicatorSwitch = new Adw.SwitchRow({
-            title:    'Show Change Indicator — نمایش نشانگر تغییر',
-            subtitle: 'Display ▲/▼ arrows and percentage change',
-        });
-        settings.bind('show-change-indicator', changeIndicatorSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
-        appearanceGroup.add(changeIndicatorSwitch);
-
-        // Font family
-        const fontModel = new Gtk.StringList();
-        const fontOptions = [
-            'Cantarell',
-            'Noto Sans',
-            'Noto Sans Arabic',
-            'DejaVu Sans',
-            'Liberation Sans',
-            'Monospace',
-            'Sans',
-            'Serif',
-        ];
-        for (const font of fontOptions) {
-            fontModel.append(font);
-        }
-
-        const fontRow = new Adw.ComboRow({
-            title:    'Font Family — فونت',
-            subtitle: 'Font family for price display',
-            model:    fontModel,
-        });
-
-        const currentFont = settings.get_string('font-family');
-        const fontIdx = fontOptions.indexOf(currentFont);
-        fontRow.set_selected(Math.max(0, fontIdx));
-        fontRow.connect('notify::selected', () => {
-            settings.set_string('font-family', fontOptions[fontRow.selected]);
-        });
-        appearanceGroup.add(fontRow);
-
-        // Font size
-        const fontSizeRow = new Adw.SpinRow({
-            title:    'Font Size — اندازه فونت',
-            subtitle: 'Font size in pixels for price display',
-            adjustment: new Gtk.Adjustment({
-                lower: 8,
-                upper: 24,
-                step_increment: 1,
-                page_increment: 2,
-            }),
-        });
-        fontSizeRow.set_value(settings.get_int('font-size'));
-        fontSizeRow.connect('notify::value', () => {
-            settings.set_int('font-size', Math.round(fontSizeRow.get_value()));
-        });
-        appearanceGroup.add(fontSizeRow);
-
-        page.add(appearanceGroup);
-
-    }
+  _buildLinkRow(title, url) {
+    const row = new Adw.ActionRow({
+      title,
+      subtitle: url.replace(/^https?:\/\//, "").replace(/\/$/, ""),
+      activatable: true,
+    });
+    row.add_suffix(new Gtk.Image({ icon_name: "adw-external-link-symbolic" }));
+    row.connect("activated", () => {
+      Gio.AppInfo.launch_default_for_uri(url, null);
+    });
+    return row;
+  }
 }
