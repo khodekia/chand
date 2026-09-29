@@ -22,7 +22,7 @@
 - **Works offline**: The last rates are kept, so they show right away after a restart or while you're offline.
 
 ## 💻 Compatibility
-- **GNOME Shell**: 49, 50
+- **GNOME Shell**: 46, 47, 48, 49, 50
 
 ## 📦 Installation
 

@@ -39,7 +39,11 @@ const ChandIndicator = GObject.registerClass(
       );
       // Hold the text still while the pointer is over it, so it can be read.
       this.connect("notify::hover", () => this._syncMarqueePaused());
-      this.connect("destroy", () => this._marquee?.stop());
+    }
+
+    destroy() {
+      this._stopMarquee();
+      super.destroy();
     }
 
     _initTicker() {
@@ -142,6 +146,7 @@ const ChandIndicator = GObject.registerClass(
       if (this._panelText === null) return;
 
       this._stopMarquee();
+      this._track.translation_x = 0;
 
       const [labelA, labelB] = this._labels;
       const { scale_factor: scale } = St.ThemeContext.get_for_stage(
@@ -153,11 +158,20 @@ const ChandIndicator = GObject.registerClass(
       labelA.set_position(0, 0);
       labelB.hide();
 
+      // The viewport's width includes its CSS padding, so add that on top of
+      // the room the text needs, or the end of the text gets clipped.
+      const padding = Math.ceil(
+        this._viewport.get_theme_node().get_horizontal_padding(),
+      );
+
       const [, textWidth] = labelA.get_preferred_width(-1);
       if (textWidth <= maxWidth) {
-        this._viewport.width = Math.ceil(
+        const contentWidth = Math.ceil(
           Math.max(MIN_VIEWPORT_WIDTH * scale, textWidth),
         );
+        // Centered, for short text such as the app name.
+        labelA.set_position(Math.floor((contentWidth - textWidth) / 2), 0);
+        this._viewport.width = contentWidth + padding;
         return;
       }
 
@@ -167,7 +181,7 @@ const ChandIndicator = GObject.registerClass(
 
       // Whole pixels keep the loop seamless and the text sharp while moving.
       const unitWidth = Math.ceil(labelA.get_preferred_width(-1)[1]);
-      this._viewport.width = maxWidth;
+      this._viewport.width = maxWidth + padding;
 
       // Persian reads right to left, so its text enters from the left edge
       // and moves right; English enters from the right and moves left.
@@ -192,7 +206,7 @@ const ChandIndicator = GObject.registerClass(
         duration: Math.round((Math.abs(distance) / pixelsPerSecond) * 1000),
         repeat_count: -1,
       });
-      this._marquee.connect("new-frame", (timeline) => {
+      this._marqueeFrameId = this._marquee.connect("new-frame", (timeline) => {
         const x = Math.round(from + distance * timeline.get_progress());
         if (x !== this._track.translation_x) this._track.translation_x = x;
       });
@@ -201,9 +215,9 @@ const ChandIndicator = GObject.registerClass(
 
     _stopMarquee() {
       if (!this._marquee) return;
+      this._marquee.disconnect(this._marqueeFrameId);
       this._marquee.stop();
       this._marquee = null;
-      this._track.translation_x = 0;
     }
 
     _syncMarqueePaused() {

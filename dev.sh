@@ -28,9 +28,17 @@ install() {
 
 # A throwaway GNOME Shell in a window, with its own D-Bus session.
 nested() {
-  install
   local flag=--nested
-  if ((SHELL_MAJOR >= 49)); then flag=--devkit; fi
+  if ((SHELL_MAJOR >= 49)); then
+    flag=--devkit
+    # Without the devkit viewer the shell still starts, just with no window.
+    if [[ ! -x /usr/lib/mutter-devkit && ! -x /usr/libexec/mutter-devkit ]]; then
+      echo "GNOME $SHELL_MAJOR needs the mutter-devkit package for a nested shell." >&2
+      echo "Install it (e.g. 'sudo pacman -S mutter-devkit') and try again." >&2
+      exit 1
+    fi
+  fi
+  install
   MUTTER_DEBUG_DUMMY_MODE_SPECS=${MUTTER_DEBUG_DUMMY_MODE_SPECS:-1600x900} \
     dbus-run-session -- bash -c "
       gnome-shell $flag --wayland &
