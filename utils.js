@@ -17,19 +17,20 @@ export function formatValue(symbol, value, unit, lang) {
   return localizeDigits(text, lang);
 }
 
-// Returns null when there is no change to show yet.
+// Returns null when there is no change to show yet. `direction` picks the
+// arrow icon: "up", "down" or "none".
 export function formatChange(change, lang) {
   if (typeof change !== "number" || !Number.isFinite(change)) return null;
 
   const percent = localizeDigits(Math.abs(change).toFixed(2), lang);
-  const sign = lang === "fa" ? "٪" : "%";
+  const text = `${percent}${lang === "fa" ? "٪" : "%"}`;
   if (change > 0) {
-    return { text: `▲ ${percent}${sign}`, styleClass: "chand-change-up" };
+    return { direction: "up", text, styleClass: "chand-change-up" };
   }
   if (change < 0) {
-    return { text: `▼ ${percent}${sign}`, styleClass: "chand-change-down" };
+    return { direction: "down", text, styleClass: "chand-change-down" };
   }
-  return { text: `• ${percent}${sign}`, styleClass: null };
+  return { direction: "none", text, styleClass: null };
 }
 
 export function formatTime(timestamp, lang) {

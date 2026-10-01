@@ -2,6 +2,26 @@
     padding: 0 5px;
 }
 
+.chand-ticker-row,
+.chand-ticker-change {
+    spacing: 4px;
+}
+
+.chand-ticker-separator {
+    width: 1px;
+    height: 12px;
+    margin: 0 6px;
+    background-color: rgba(128, 128, 128, 0.6);
+}
+
+.chand-ticker-gap {
+    width: 40px;
+}
+
+.chand-change-icon {
+    icon-size: 12px;
+}
+
 .chand-menu {
     min-width: 300px;
 }
@@ -19,6 +39,7 @@
 
 .chand-item-change {
     min-width: 5em;
+    spacing: 4px;
     font-size: 0.9em;
     font-feature-settings: "tnum";
 }

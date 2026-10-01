@@ -3,7 +3,12 @@ import Gio from "gi://Gio";
 import St from "gi://St";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 import { HttpError } from "./api.js";
-import { LANGUAGES, SYMBOL_GROUPS, UI_STRINGS } from "./constants.js";
+import {
+  CHANGE_ICONS,
+  LANGUAGES,
+  SYMBOL_GROUPS,
+  UI_STRINGS,
+} from "./constants.js";
 import { formatTime } from "./utils.js";
 
 export class MenuBuilder {
@@ -56,12 +61,20 @@ export class MenuBuilder {
       y_align: Clutter.ActorAlign.CENTER,
       style_class: "chand-item-value",
     });
-    const changeLabel = new St.Label({
+    const changeBox = new St.BoxLayout({
       y_align: Clutter.ActorAlign.CENTER,
       style_class: "chand-item-change",
     });
+    const changeIcon = new St.Icon({
+      y_align: Clutter.ActorAlign.CENTER,
+      style_class: "chand-change-icon",
+      visible: false,
+    });
+    const changeLabel = new St.Label({ y_align: Clutter.ActorAlign.CENTER });
+    changeBox.add_child(changeIcon);
+    changeBox.add_child(changeLabel);
     menuItem.add_child(valueLabel);
-    menuItem.add_child(changeLabel);
+    menuItem.add_child(changeBox);
 
     // Toggle without closing the menu, so several rates can be picked.
     menuItem.activate = () => {
@@ -72,7 +85,14 @@ export class MenuBuilder {
       );
     };
 
-    this._symbolItems.set(id, { menuItem, labels, valueLabel, changeLabel });
+    this._symbolItems.set(id, {
+      menuItem,
+      labels,
+      valueLabel,
+      changeBox,
+      changeIcon,
+      changeLabel,
+    });
     return menuItem;
   }
 
@@ -213,7 +233,12 @@ export class MenuBuilder {
 
     widgets.valueLabel.text = text ?? "";
     widgets.changeLabel.text = change?.text ?? "";
-    widgets.changeLabel.style_class = change?.styleClass
+
+    const iconName = CHANGE_ICONS[change?.direction];
+    widgets.changeIcon.visible = Boolean(iconName);
+    if (iconName) widgets.changeIcon.icon_name = iconName;
+
+    widgets.changeBox.style_class = change?.styleClass
       ? `chand-item-change ${change.styleClass}`
       : "chand-item-change";
   }

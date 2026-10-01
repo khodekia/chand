@@ -41,19 +41,6 @@
       <summary>Show last updated time in the popup menu</summary>
     </key>
 
-    <key name="separator" type="s">
-      <choices>
-        <choice value='|'/>
-        <choice value='•'/>
-        <choice value='·'/>
-        <choice value='-'/>
-        <choice value='/'/>
-        <choice value=' '/>
-      </choices>
-      <default>'|'</default>
-      <summary>Separator between rates in the top bar</summary>
-    </key>
-
     <key name="panel-position" type="s">
       <choices>
         <choice value='left'/>
@@ -68,18 +55,6 @@
       <range min="80" max="1000"/>
       <default>300</default>
       <summary>Maximum width of the top bar text, in pixels, before it scrolls</summary>
-    </key>
-
-    <key name="marquee-gap-style" type="s">
-      <choices>
-        <choice value='space'/>
-        <choice value='dot'/>
-        <choice value='dash'/>
-        <choice value='star'/>
-        <choice value='diamond'/>
-      </choices>
-      <default>'dot'</default>
-      <summary>Style of the gap between repeats of the scrolling text</summary>
     </key>
 
     <key name="marquee-speed" type="s">

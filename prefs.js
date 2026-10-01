@@ -138,44 +138,11 @@ export default class ChandPreferences extends ExtensionPreferences {
     panelGroup.add(maxWidthRow);
 
     panelGroup.add(
-      this._buildComboRow(
-        settings,
-        "separator",
-        t.separatorTitle,
-        t.separatorSubtitle,
-        [
-          { value: "|", label: t.pipe },
-          { value: "•", label: t.dot },
-          { value: "·", label: t.middleDot },
-          { value: "-", label: t.dashSymbol },
-          { value: "/", label: t.slash },
-          { value: " ", label: t.space },
-        ],
-      ),
-    );
-
-    panelGroup.add(
       this._buildSwitchRow(
         settings,
         "show-change-indicator",
         t.changeTitle,
         t.changeSubtitle,
-      ),
-    );
-
-    panelGroup.add(
-      this._buildComboRow(
-        settings,
-        "marquee-gap-style",
-        t.gapTitle,
-        t.gapSubtitle,
-        [
-          { value: "space", label: t.blankSpace },
-          { value: "dot", label: t.dot },
-          { value: "dash", label: t.dash },
-          { value: "star", label: t.star },
-          { value: "diamond", label: t.diamond },
-        ],
       ),
     );
 

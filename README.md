@@ -15,10 +15,10 @@
   - 18K gold, mithqal and gold ounce
   - Emami, Bahar Azadi, half, quarter and 1g coins
   - Bitcoin and the Tehran Stock Exchange index
-- **Price changes**: An ▲/▼ arrow and the percentage move next to each rate.
+- **Price changes**: An up/down arrow and the percentage move next to each rate.
 - **Persian or English**: The menu and settings switch to a right-to-left layout in Persian, with Persian digits and dates.
 - **Toman or Rial**: Pick the unit for currency, gold and coin prices.
-- **Customizable top bar**: Choose the position (left, center or right), maximum width, separator, and scroll speed and style.
+- **Customizable top bar**: Choose the position (left, center or right), maximum width and scroll speed.
 - **Works offline**: The last rates are kept, so they show right away after a restart or while you're offline.
 
 ## 💻 Compatibility
