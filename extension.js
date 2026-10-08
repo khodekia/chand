@@ -1,7 +1,7 @@
 import GLib from "gi://GLib";
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
-import { HttpError, RatesClient } from "./api.js";
+import { HttpError, isRegionBlocked, RatesClient } from "./api.js";
 import { RETRY_SECONDS } from "./constants.js";
 import ChandIndicator from "./indicator.js";
 
@@ -71,7 +71,12 @@ export default class ChandExtension extends Extension {
 
     this._fetching = false;
     this._error = error;
-    if (error) {
+    if (isRegionBlocked(error)) {
+      // Not a fault to report; just stop showing rates from before the block.
+      console.debug("Chand: rates are not available in this region");
+      this._snapshot = null;
+      this._indicator.setRates(null);
+    } else if (error) {
       console.warn(`Chand: failed to fetch rates: ${error.message}`);
     } else {
       this._snapshot = snapshot;

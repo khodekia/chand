@@ -10,13 +10,22 @@ Gio._promisify(
   "replace_contents_bytes_async",
   "replace_contents_finish",
 );
+Gio._promisify(Gio.File.prototype, "delete_async");
 
 export class HttpError extends Error {
-  constructor(status, reason) {
+  constructor(status, reason, code = null) {
     super(reason ? `HTTP ${status} (${reason})` : `HTTP ${status}`);
     this.name = "HttpError";
     this.status = status;
+    this.code = code;
   }
+}
+
+// The API refuses some regions with 451, or 403 and code "region_blocked".
+export function isRegionBlocked(error) {
+  if (!(error instanceof HttpError)) return false;
+  return error.status === 451 ||
+    (error.status === 403 && error.code === "region_blocked");
 }
 
 export function isCancelled(error) {
@@ -102,12 +111,19 @@ export class RatesClient {
 
     if (status !== Soup.Status.OK) {
       let reason = message.get_reason_phrase();
+      let code = null;
       try {
-        reason = JSON.parse(text).error || reason;
+        const body = JSON.parse(text);
+        reason = body.error || reason;
+        code = body.code ?? null;
       } catch {
         // Not JSON; keep the reason phrase.
       }
-      throw new HttpError(status, reason);
+      const error = new HttpError(status, reason, code);
+      // Rates from before the block shouldn't keep showing, now or after a
+      // restart.
+      if (isRegionBlocked(error)) this._clearCache();
+      throw error;
     }
 
     this._snapshot = buildSnapshot(JSON.parse(text), this._snapshot);
@@ -128,6 +144,22 @@ export class RatesClient {
     } catch (e) {
       if (!isCancelled(e)) {
         console.warn(`Chand: couldn't write cache: ${e.message}`);
+      }
+    }
+  }
+
+  async _clearCache() {
+    this._snapshot = null;
+    try {
+      await this._cacheFile.delete_async(
+        GLib.PRIORITY_DEFAULT,
+        this._cancellable,
+      );
+    } catch (e) {
+      const missing = e instanceof GLib.Error &&
+        e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_FOUND);
+      if (!missing && !isCancelled(e)) {
+        console.warn(`Chand: couldn't delete cache: ${e.message}`);
       }
     }
   }
