@@ -2,7 +2,7 @@ import Clutter from "gi://Clutter";
 import Gio from "gi://Gio";
 import St from "gi://St";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
-import { HttpError } from "./api.js";
+import { HttpError, isRegionBlocked } from "./api.js";
 import {
   CHANGE_ICONS,
   LANGUAGES,
@@ -270,8 +270,13 @@ export class MenuBuilder {
 
     // The full error goes to the journal; the menu only needs the gist.
     this._errorItem.visible = Boolean(error) && !loading;
-    this._errorItem.label.text = error instanceof HttpError
-      ? `${strings.updateFailed} (HTTP ${error.status})`
-      : strings.updateFailed;
+    if (isRegionBlocked(error)) {
+      this._errorItem.label.text = strings.regionBlocked;
+    } else if (error instanceof HttpError) {
+      this._errorItem.label.text =
+        `${strings.updateFailed} (HTTP ${error.status})`;
+    } else {
+      this._errorItem.label.text = strings.updateFailed;
+    }
   }
 }
