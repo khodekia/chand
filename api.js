@@ -39,9 +39,10 @@ function parseNumber(raw) {
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
-// A snapshot is { updated, rates: { [symbolId]: { value, change } } }. The
-// API only reports current prices, so `change` is the percentage move since
-// the previous different value seen, carried over while the price holds.
+// A snapshot is { updated, rates: { [symbolId]: { value, change } } }.
+// `change` is the API's percentage move since the start of the day in
+// Tehran, when it sends one. Otherwise it's the move since the previous
+// different value seen, carried over while the price holds.
 function buildSnapshot(json, previous) {
   const rates = {};
 
@@ -49,9 +50,12 @@ function buildSnapshot(json, previous) {
     const value = parseNumber(json?.[symbol.key]);
     if (value === null) continue;
 
+    const daily = json?.changes?.[symbol.key];
     const before = previous?.rates?.[symbol.id];
     let change = before?.change ?? null;
-    if (before && before.value !== value) {
+    if (typeof daily === "number" && Number.isFinite(daily)) {
+      change = daily;
+    } else if (before && before.value !== value) {
       change = ((value - before.value) / before.value) * 100;
     }
     rates[symbol.id] = { value, change };
